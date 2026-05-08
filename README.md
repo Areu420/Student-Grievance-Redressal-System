@@ -1,10 +1,10 @@
-Student Grievance Redressal Portal
+📌 Student Grievance Redressal System
 
 🔍 Overview
 
-The Student Grievance Redressal Portal is a full-stack blockchain-integrated complaint management system designed for educational institutions.
+The Student Grievance Redressal System is a full-stack blockchain-integrated complaint management platform designed for educational institutions.
 
-The platform allows students to submit grievances securely while enabling administrators and authorities to manage, monitor, escalate, and resolve complaints efficiently.
+The system allows students to submit grievances securely while enabling administrators and authorities to manage, monitor, escalate, and resolve complaints efficiently.
 
 The project combines:
 
@@ -185,7 +185,7 @@ Cloud & Storage
 
 📁 Project Structure
 
-Student-Grievance-Redressal-Portal/
+Student-Grievance-Redressal-System/
 │
 ├── client/                         # React Frontend
 │   ├── src/
@@ -276,7 +276,7 @@ Socket.io is used for:
 1. Clone Repository
 
 git clone <repository-url>
-cd Student-Grievance-Redressal-Portal
+cd Student-Grievance-Redressal-System
 
 ⸻
 
@@ -422,7 +422,7 @@ Possible future enhancements:
 
 📌 Conclusion
 
-The Student Grievance Redressal Portal demonstrates a complete enterprise-level full-stack application integrated with blockchain technology.
+The Student Grievance Redressal System demonstrates a complete enterprise-level full-stack application integrated with blockchain technology.
 
 The project combines:
 
