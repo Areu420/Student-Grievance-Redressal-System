@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum Visibility {
+  PUBLIC
+  PERSONAL
+}
+
+enum Status {
+  CREATED
+  ASSIGNED
+  IN_PROGRESS
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  passwordHash    String
+  role            Role             @default(STUDENT)
+  name            String?
+  rollNo          String?          @unique
+  authorityId     String?          @unique
+  designation     String?          // e.g., "Caretaker", "Warden", "Vice Chancellor"
+  departmentId    String?
+  department      Department?      @relation(fields: [departmentId], references: [id])
+  complaints      Complaint[]      @relation("UserComplaints")
+  assignedTickets Complaint[]      @relation("AssignedTickets")
+  comments        Comment[]
+  votes           Vote[]
+  activityLogs    ActivityLog[]
+  notifications   Notification[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Department {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  users       User[]
+  complaints  Complaint[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Complaint {
+  id              String          @id @default(uuid())
+  hashId          String          @unique // Hash for blockchain audit
+  title           String
+  description     String
+  category        String
+  severity        Severity
+  visibility      Visibility
+  status          Status          @default(CREATED)
+  
+  // Relations
+  departmentId    String?
+  department      Department?     @relation(fields: [departmentId], references: [id])
+  userId          String
+  user            User            @relation("UserComplaints", fields: [userId], references: [id])
+  assignedToId    String?
+  assignedTo      User?           @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  
+  // SLA Tracking
+  slaDeadline     DateTime?
+  slaBreached     Boolean         @default(false)
+  respondedAt     DateTime?
+  resolvedAt      DateTime?
+  
+  // Hierarchy Tracking (Array-Index Escalation)
+  currentChainIndex  Int          @default(0)
+  escalationChain    String?      // JSON array of user IDs, e.g. '["uid1","uid2","uid3"]'
+  isEscalated        Boolean      @default(false)
+  
+  // Privacy
+  isAnonymous     Boolean         @default(false)
+  
+  // Artifacts
+  ipfsHash        String?
+  attachmentUrl   String?
+  resolutionProof String?
+  txHash          String?         // Latest blockchain tx hash
+  
+  // Sub-resources
+  votes           Vote[]
+  comments        Comment[]
+  activityLogs    ActivityLog[]
+  escalationLogs  EscalationLog[]
+  feedback        Feedback?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Comment {
+  id            String    @id @default(uuid())
+  text          String
+  attachmentUrl String?
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  complaintId   String
+  complaint     Complaint @relation(fields: [complaintId], references: [id])
+  createdAt     DateTime  @default(now())
+}
+
+model Vote {
+  id          String    @id @default(uuid())
+  type        VoteType
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, complaintId])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  action      String   // TICKET_CREATED, STATUS_CHANGE, ASSIGNMENT, COMMENT_ADDED, SLA_BREACH
+  oldValue    String?
+  newValue    String?
+  details     String?  @db.Text
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  timestamp   DateTime @default(now())
+}
+
+model Feedback {
+  id          String    @id @default(uuid())
+  rating      Int       // 1-5
+  comment     String?
+  complaintId String    @unique
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // INFO, WARNING, SUCCESS, DANGER
+  message   String
+  link      String?  
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model EscalationLog {
+  id            String    @id @default(cuid())
+  complaintId   String
+  complaint     Complaint @relation(fields: [complaintId], references: [id])
+  fromIndex     Int
+  toIndex       Int
+  fromAuthority String?   // User email or ID
+  toAuthority   String?   // User email or ID
+  reason        String    // "SLA_BREACH" | "MANUAL" | "HIGH_IMPACT"
+  txHash        String?   // Blockchain tx hash for this escalation
+  timestamp     DateTime  @default(now())
+}
